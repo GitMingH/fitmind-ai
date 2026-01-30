@@ -1,0 +1,9 @@
+
+{
+  "name": "FitMind AI (智体AI)",
+  "description": "A comprehensive AI-native fitness and nutrition agent using Gemini 3 and Veo 3.1 models for personalized coaching, visual meal tracking, and real-time heart rate monitoring.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
