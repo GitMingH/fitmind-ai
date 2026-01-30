@@ -49,7 +49,6 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
   const [generatedVid, setGeneratedVid] = useState<string | null>(null);
   const [posterImg, setPosterImg] = useState<string | null>(null);
 
-  // Veo steps animation logic
   useEffect(() => {
     let interval: any;
     if (loading && stage === 'video') {
@@ -63,19 +62,26 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
   }, [loading, stage]);
 
   const checkApiKey = async () => {
-    // 强制检查是否有 API KEY，特别是对于 Veo 和 Pro 模型
-    const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-    if (!hasKey) {
-      await (window as any).aistudio.openSelectKey();
-      // 用户选择后，我们继续尝试下一步
-      return true; 
+    // 兼容性检测：如果存在 window.aistudio 接口（预览环境），则弹出选择框
+    if ((window as any).aistudio && typeof (window as any).aistudio.hasSelectedApiKey === 'function') {
+      const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+      if (!hasKey) {
+        await (window as any).aistudio.openSelectKey();
+      }
+    } else {
+      // 生产环境：确保环境变量中已经填入了 Key
+      if (!process.env.API_KEY) {
+        alert("请在 Vercel 环境变量中配置 API_KEY 以使用实验室功能。");
+        return false;
+      }
     }
     return true;
   };
 
   const handleGenerateImage = async () => {
     if (!prompt.trim()) return;
-    await checkApiKey();
+    const ok = await checkApiKey();
+    if (!ok) return;
 
     setLoading(true);
     setStage('image');
@@ -86,9 +92,7 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
       setGeneratedImg(url || null);
     } catch (e: any) {
       console.error(e);
-      if (e.message?.includes("Requested entity was not found.")) {
-        await (window as any).aistudio.openSelectKey();
-      }
+      alert(`生成失败: ${e.message || '未知错误'}`);
     } finally {
       setLoading(false);
     }
@@ -96,7 +100,8 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
 
   const handleGenerateVideo = async () => {
     if (!generatedImg) return;
-    await checkApiKey();
+    const ok = await checkApiKey();
+    if (!ok) return;
 
     setLoading(true);
     setStage('video');
@@ -108,20 +113,19 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
       setGeneratedVid(videoUrl);
     } catch (e: any) {
       console.error(e);
-      if (e.message?.includes("Requested entity was not found.")) {
-        await (window as any).aistudio.openSelectKey();
-      }
+      alert(`视频生成失败: ${e.message || '请确保使用的是付费版 API Key'}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleGeneratePoster = async () => {
-    await checkApiKey();
+    const ok = await checkApiKey();
+    if (!ok) return;
+
     setLoading(true);
     setStage('poster');
     try {
-      // 提取本周亮点
       const bestWorkout = workouts.length > 0 ? [...workouts].sort((a,b) => b.caloriesBurned - a.caloriesBurned)[0] : null;
       const highlight = bestWorkout ? `本周巅峰：${bestWorkout.type}，消耗${bestWorkout.caloriesBurned}卡路里` : "智体 AI 健身挑战者";
       
@@ -173,15 +177,13 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
         </button>
       </div>
 
-      {/* API Key Notice */}
       <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-3xl flex items-start space-x-3">
         <AlertCircle className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
         <p className="text-[11px] text-zinc-400 leading-relaxed font-medium">
-          实验室功能涉及 <span className="text-purple-400 font-black">Veo 视频生成</span> 及 <span className="text-purple-400 font-black">4K 高清绘图</span>，需在弹出框中选择已启用计费（Paid Project）的 API Key。
+          实验室功能涉及 <span className="text-purple-400 font-black">Veo 视频生成</span> 及 <span className="text-purple-400 font-black">4K 高清绘图</span>。在生产环境下，请确保已启用 API 计费。
         </p>
       </div>
 
-      {/* Creator Console */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-[40px] p-6 space-y-8 shadow-2xl relative overflow-hidden">
         <div className="space-y-4 relative z-10">
           <div className="flex items-center space-x-2">
@@ -256,7 +258,6 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
         </button>
       </div>
 
-      {/* Render State Indicator */}
       {loading && stage === 'video' && (
         <div className="bg-zinc-900 border border-purple-500/20 rounded-[40px] p-12 flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-500">
           <div className="relative">
@@ -269,13 +270,9 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
             <p className="text-xl font-black tracking-tighter text-zinc-100">{VEO_STEPS[veoStep]}</p>
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">由谷歌最新 VEO 视频扩散模型驱动</p>
           </div>
-          <div className="w-full max-w-xs bg-zinc-950 h-2 rounded-full overflow-hidden p-0.5 border border-zinc-800">
-             <div className="bg-gradient-to-r from-purple-600 to-emerald-500 h-full transition-all duration-1000 rounded-full" style={{ width: `${((veoStep + 1) / VEO_STEPS.length) * 100}%` }} />
-          </div>
         </div>
       )}
 
-      {/* Output Results */}
       {(generatedImg || generatedVid) && !loading && (
         <div className="space-y-6 animate-in slide-in-from-bottom-12 duration-700">
            <div className="flex items-center justify-between px-1">
@@ -294,12 +291,6 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
                  ) : (
                    <img src={generatedImg!} className="w-full h-full object-cover" />
                  )}
-                 
-                 <div className="absolute top-6 right-6 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => shareResult(generatedImg!)} className="p-4 bg-zinc-900/90 backdrop-blur-xl rounded-[20px] text-white hover:bg-zinc-800 transition-all shadow-2xl">
-                      <Share2 className="w-6 h-6" />
-                    </button>
-                 </div>
               </div>
 
               <div className="p-8 bg-zinc-900 flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
@@ -323,7 +314,6 @@ const AILab: React.FC<AILabProps> = ({ workouts }) => {
         </div>
       )}
 
-      {/* Poster Result (Modal) */}
       {posterImg && !loading && stage === 'poster' && (
         <div className="fixed inset-0 z-[100] bg-zinc-950/98 backdrop-blur-3xl p-6 flex flex-col items-center justify-center animate-in zoom-in-95 duration-300">
            <button onClick={() => setPosterImg(null)} className="absolute top-8 right-8 p-4 bg-zinc-900 rounded-full text-zinc-500 hover:text-white transition-all border border-zinc-800 shadow-2xl">

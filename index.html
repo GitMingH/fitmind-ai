@@ -7,6 +7,11 @@
     <title>FitMind AI - 智体健康</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // 核心补丁：防止浏览器环境下的 process.env 引用崩溃
+      window.process = window.process || { env: {} };
+      // 提示：Vercel 部署时会自动将 API_KEY 注入到环境中
+    </script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -49,6 +54,7 @@
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>
