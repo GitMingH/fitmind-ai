@@ -1,37 +1,44 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import './index.css'; // 确保样式被引入
 
-// --- 🛡️ 核心补丁：全局 API 代理拦截器 ---
-// 作用：强制将所有发往 Google 的请求重定向到 Vercel 代理 (/api/proxy)
-// 这解决了 SDK 不听话、直连 Google 导致 400/超时的问题
+// --- 🛡️ 终极 API 拦截器 ---
 const originalFetch = window.fetch;
+
 window.fetch = async (input, init) => {
   let url = input instanceof Request ? input.url : input.toString();
-  
-  // 拦截目标：generativelanguage.googleapis.com
+
+  // 只拦截发往 Google 的请求
   if (url.includes('generativelanguage.googleapis.com')) {
-    // 1. 替换域名为当前网站的 /api/proxy
-    // 例如：https://generativelanguage.googleapis.com/v1beta/... 
-    // 变为：/api/proxy/v1beta/...
+    // 1. 将 URL 重定向到我们的 Vercel 代理
     const newUrl = url.replace('https://generativelanguage.googleapis.com', '/api/proxy');
     
-    // 2. 复制配置并清理 Header
-    const newInit = { ...init };
-    if (newInit.headers) {
-      // 必须删除 SDK 自带的假 Key，否则代理转发时 Google 会报错
-      const headers = new Headers(newInit.headers);
-      headers.delete('x-goog-api-key'); 
-      newInit.headers = headers;
-    }
-
-    // 3. 发起新请求
+    // 2. 处理 Request 对象的情况 (SDK 通常用这个)
+    if (input instanceof Request) {
+      // 创建新 Request，指向新 URL
+      // 这里的关键是：使用 newUrl，并继承原 input 的 body/headers
+      const newRequest = new Request(newUrl, input);
+      
+      // 删除 SDK 自带的 Header 中的假 Key
+      newRequest.headers.delete('x-goog-api-key');
+      
+      return originalFetch(newRequest);
+    } 
+    
+    // 3. 处理普通 URL 字符串的情况
+    const newInit = { ...(init || {}) };
+    const newHeaders = new Headers(newInit.headers || {});
+    newHeaders.delete('x-goog-api-key'); // 删假 Key
+    newInit.headers = newHeaders;
+    
     return originalFetch(newUrl, newInit);
   }
-  
+
+  // 非 Google 请求，直接放行
   return originalFetch(input, init);
 };
-// --- 补丁结束 ---
+// --- 拦截器结束 ---
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error("Could not find root element");
