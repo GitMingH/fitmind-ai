@@ -10,14 +10,10 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 //  return new GoogleGenAI({ apiKey: apiKey || "" });
 //};
 
+// services/gemini.ts
 const getAI = () => {
-  const apiKey = "proxy-mode"; // 假 Key，由后端代理替换为真 Key
-
-  return new GoogleGenAI({ 
-    apiKey: apiKey,
-    // 【修正点】baseUrl 不要放在 requestOptions 里，直接放在第一层
-    baseUrl: typeof window !== 'undefined' ? `${window.location.origin}/api/proxy` : 'https://generativelanguage.googleapis.com'
-  });
+  // 这里的 Key 随便填，反正会被 index.tsx 里的拦截器删掉，并由后端加上真 Key
+  return new GoogleGenAI({ apiKey: "proxy-mode" });
 };
 
 
