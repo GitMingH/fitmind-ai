@@ -2,22 +2,12 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 
 // 增强型初始化：带错误检测
-//const getAI = () => {
-//  const apiKey = process.env.API_KEY;
-//  if (!apiKey) {
-//    console.error("FitMind Error: API_KEY is missing in process.env. 请检查 Vercel 环境变量设置。");
-//  }
-//  return new GoogleGenAI({ apiKey: apiKey || "" });
-//};
-
 const getAI = () => {
-  const apiKey = "proxy-mode"; // 假 Key，由后端代理替换为真 Key
-
-  return new GoogleGenAI({ 
-    apiKey: apiKey,
-    // 【修正点】baseUrl 不要放在 requestOptions 里，直接放在第一层
-    baseUrl: typeof window !== 'undefined' ? `${window.location.origin}/api/proxy` : 'https://generativelanguage.googleapis.com'
-  });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.error("FitMind Error: API_KEY is missing in process.env. 请检查 Vercel 环境变量设置。");
+  }
+  return new GoogleGenAI({ apiKey: apiKey || "" });
 };
 
 
