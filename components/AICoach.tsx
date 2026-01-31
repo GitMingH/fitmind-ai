@@ -124,7 +124,11 @@ const AICoach: React.FC<AICoachProps> = ({ profile, workouts, device, personaId 
     setCurrentOutputTranscription('');
     transcriptionRef.current = { input: '', output: '' };
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+//    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+	  const ai = new GoogleGenAI({ 
+		apiKey: "proxy-mode", 
+		baseUrl: typeof window !== 'undefined' ? `${window.location.origin}/api/proxy` : 'https://generativelanguage.googleapis.com'
+	  });
     
     const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000, latencyHint: 'interactive' });
     const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000, latencyHint: 'interactive' });

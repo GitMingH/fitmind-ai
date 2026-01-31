@@ -10,22 +10,17 @@ import { GoogleGenAI, Type, Modality } from "@google/genai";
 //  return new GoogleGenAI({ apiKey: apiKey || "" });
 //};
 
-// 增强型初始化：改为走 Vercel 代理
 const getAI = () => {
-  // 修改点 1：不再从前端读取真实 Key，而是使用占位符
-  // 真实的 Key 会在后端 (api/proxy.js) 中自动添加，前端传个假值防止 SDK 报错即可
-  const apiKey = "proxy-mode"; 
+  const apiKey = "proxy-mode"; // 假 Key，由后端代理替换为真 Key
 
   return new GoogleGenAI({ 
     apiKey: apiKey,
-    // 修改点 2：配置 requestOptions，将请求基地址指向你的 Vercel 代理
-    requestOptions: {
-      // 自动判断：如果是浏览器环境，使用当前域名下的 /api/proxy 路径
-      // 这样请求就会发给：你的域名/api/proxy/... 从而触发 api/proxy.js
-      baseUrl: typeof window !== 'undefined' ? `${window.location.origin}/api/proxy` : 'https://generativelanguage.googleapis.com'
-    }
+    // 【修正点】baseUrl 不要放在 requestOptions 里，直接放在第一层
+    baseUrl: typeof window !== 'undefined' ? `${window.location.origin}/api/proxy` : 'https://generativelanguage.googleapis.com'
   });
 };
+
+
 
 export const geminiService = {
   // Get a quick fitness or nutrition tip
