@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/proxy/:match*",
+      "destination": "/api/proxy"
+    }
+  ]
+}
