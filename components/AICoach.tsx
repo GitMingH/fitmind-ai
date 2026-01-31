@@ -1,19 +1,41 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-// 1. 引入 Globe 图标
-import { Sparkles, Calendar, ChevronRight, Mic, Play, Loader2, Send, Zap, Waves, MessageSquare, Volume2, X, Activity, Heart, ShieldAlert, Globe } from 'lucide-react';
+import { Sparkles, Calendar, ChevronRight, Mic, Play, Loader2, Send, Zap, Waves, MessageSquare, Volume2, X, Activity, Heart, ShieldAlert } from 'lucide-react';
 import { GoogleGenAI, LiveServerMessage, Modality, Blob } from '@google/genai';
 import { geminiService } from '../services/gemini';
 import { DailyPlan, UserProfile, Workout, DeviceState } from '../types';
 import { PERSONA_CONFIGS } from '../App';
 
-// ... (Audio Utils 代码保持不变，省略以节省篇幅) ...
-function encode(bytes: Uint8Array) { /* ... */ return btoa(binary); }
-function decode(base64: string) { /* ... */ return bytes; }
-async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
-  /* ... 代码保持不变 ... */
+// --- Audio Utils ---
+function encode(bytes: Uint8Array) {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function decode(base64: string) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
     for (let i = 0; i < frameCount; i++) {
@@ -23,7 +45,7 @@ async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: 
   return buffer;
 }
 
-// ... (AudioVisualizer 组件保持不变) ...
+// --- Visualizer Component ---
 const AudioVisualizer = ({ isActive, volume = 0, isUserSpeaking = false }: { isActive: boolean, volume?: number, isUserSpeaking?: boolean }) => {
   return (
     <div className="flex items-center justify-center space-x-1.5 h-16">
@@ -52,7 +74,6 @@ interface AICoachProps {
 }
 
 const AICoach: React.FC<AICoachProps> = ({ profile, workouts, device, personaId }) => {
-  // ... (State 定义保持不变) ...
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<DailyPlan[]>([]);
   const [chat, setChat] = useState<{role: 'user' | 'ai', text: string}[]>([]);
@@ -103,12 +124,8 @@ const AICoach: React.FC<AICoachProps> = ({ profile, workouts, device, personaId 
     setCurrentOutputTranscription('');
     transcriptionRef.current = { input: '', output: '' };
 
-    // ⚠️ 关键点：语音 Live 模式使用 WebSocket，Vercel 代理不支持 WebSocket。
-    // 所以这里必须使用真实的 process.env.API_KEY 进行直连。
-    // 这意味着用户必须开启 VPN 才能使用此功能，这正是我们添加“需特殊网络”提示的原因。
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // ... (后续 startLiveMode 逻辑完全保持不变) ...
     const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000, latencyHint: 'interactive' });
     const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000, latencyHint: 'interactive' });
     
@@ -247,27 +264,17 @@ const AICoach: React.FC<AICoachProps> = ({ profile, workouts, device, personaId 
                 <p className="text-base font-black text-zinc-100 line-clamp-1">{plans[0]?.workout.title || '生成您的训练计划'}</p>
              </div>
           </div>
-          
-          {/* --- 2. 语音实战入口 UI 修改：添加网络提示 --- */}
-          <div className="flex flex-col items-end space-y-1">
-            <button 
-              onClick={startLiveMode}
-              className="bg-emerald-500 text-zinc-950 px-5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center"
-            >
-              <Waves className="w-4 h-4 mr-2" />
-              语音实战
-            </button>
-            <span className="flex items-center text-[9px] text-zinc-500 font-medium opacity-70">
-              <Globe className="w-3 h-3 mr-1" />
-              需特殊网络支持
-            </span>
-          </div>
-          {/* ------------------------------------------- */}
-          
+          <button 
+            onClick={startLiveMode}
+            className="bg-emerald-500 text-zinc-950 px-5 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center"
+          >
+            <Waves className="w-4 h-4 mr-2" />
+            语音实战
+          </button>
         </div>
       </div>
 
-      {/* ... (Plan Scroller 及后续代码保持不变) ... */}
+      {/* Plan Scroller */}
       <div className="space-y-3 shrink-0">
         <div className="flex justify-between items-center px-1">
           <h3 className="text-sm font-bold flex items-center text-zinc-400">
@@ -296,7 +303,7 @@ const AICoach: React.FC<AICoachProps> = ({ profile, workouts, device, personaId 
         </div>
       </div>
 
-      {/* ... (Coach Chat & Live View 保持不变) ... */}
+      {/* Coach Chat & Live View */}
       <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-[40px] overflow-hidden flex flex-col relative shadow-inner">
         {isLiveMode && (
           <div className="absolute inset-0 bg-zinc-950/98 backdrop-blur-3xl z-40 flex flex-col items-center justify-between p-8 animate-in fade-in zoom-in-95 duration-300">
